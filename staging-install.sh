@@ -11,6 +11,7 @@ fi
 
 # Navigate to the web server's root directory
 cd /var/www/html || { echo "Failed to navigate to /var/www/html. Ensure the directory exists."; exit 1; }
+echo "working directory changed to /var/www/html"
 
 # Database credentials
 dbuser="myuser"
@@ -26,6 +27,8 @@ title=${2:-$(read -p "Enter site title: " tmp && echo $tmp)}
 adminuser=${3:-"appetiser"}
 adminpass=${4:-"zj^!uV8thz&Xi6zV20FI4i8Q"}
 adminemail=${5:-"norbert.feria@appetiser.com.au"}
+
+echo "Done gathering and setting values for settings"
 
 case "$foldername" in
   "")
@@ -47,15 +50,19 @@ cd "/var/www/html/$foldername"  || exit
 
 # Download WordPress core
 wp core download
+echo "core downloaded."
 
 # Create wp-config.php with database details
 wp config create --dbname="$dbname" --dbuser="$dbuser" --dbpass="$dbpass"
+echo "config created"
 
 # Create the database
 wp db create
+echo "db created"
 
 # Install WordPress
 wp core install --url="$url" --title="$title" --admin_user="$adminuser" --admin_password="$adminpass" --admin_email="$adminemail"
+echo "core installed"
 
 # Set ownership
 echo "Setting ownership to www-data..."
