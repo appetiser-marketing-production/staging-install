@@ -27,11 +27,15 @@ adminuser=${3:-"appetiser"}
 adminpass=${4:-"zj^!uV8thz&Xi6zV20FI4i8Q"}
 adminemail=${5:-"norbert.feria@appetiser.com.au"}
 
-# Failsafe for foldername
-if [[ -z "$foldername" ]]; then
-  echo "Error: Folder name cannot be blank. Please provide a valid folder name."
-  exit 1
-fi
+case "$foldername" in
+  "")
+    echo "Error: Folder name cannot be blank. Please provide a valid folder name."
+    exit 1
+    ;;
+  *)
+    # Proceed as normal
+    ;;
+esac
 
 # Automatically derive dbname and URL
 dbname="client_${foldername}"
@@ -39,7 +43,6 @@ url="$base_url/$foldername"
 
 # Create the directory and navigate into it
 sudo mkdir -p "$foldername"
-sudo chmod -R 775 "/var/www/html/$foldername"
 cd "/var/www/html/$foldername"  || exit
 
 # Download WordPress core
@@ -66,4 +69,4 @@ sudo find . -type f -exec chmod 644 {} \;
 echo "WordPress installation complete."
 
 # Ensure the final working directory is /var/www/html
-cd /var/www/html
+cd "/var/www/html/$foldername" 
