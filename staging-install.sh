@@ -91,38 +91,11 @@ echo "exporting and importing db"
 sudo -u www-data wp db export "/var/www/html/$foldername/wordpress.sql" --add-drop-table
 echo "pdrt3 db exported"
 
-#change db tables prefix
-old_prefix="pdrt1_"
-new_prefix="${foldername}_"
-echo "Changing table prefix from $old_prefix to $new_prefix in wordpress.sql..."
-sudo -u www-data sed -i "s/\`${old_prefix}/\`${new_prefix}/g" "/var/www/html/$foldername/wordpress.sql"
-echo "Table prefix changed."
+new_prefix="pdrt1_"
 
 cd "/var/www/html/$foldername"
 wp db import "/var/www/html/$foldername/wordpress.sql"
 echo "pdrt3 db imported"
-
-echo "Updating meta_key prefixes from ${old_prefix} to ${new_prefix} on usermeta table"
-sudo -u www-data wp db query "UPDATE ${new_prefix}usermeta SET meta_key = REPLACE(meta_key, '${old_prefix}', '${new_prefix}') WHERE meta_key LIKE '${old_prefix}%';"
-echo "Prefixes updated on usermeta table"
-
-# Drop tables with the wp_ prefix
-echo "Dropping unused wp_ tables..."
-tables_to_drop=$(sudo -u www-data wp db tables --all-tables --format=csv | grep '^wp_')
-
-case "$tables_to_drop" in
-  "") 
-    echo "No tables with wp_ prefix found."
-    ;;
-  *) 
-    echo "$tables_to_drop" | while IFS= read -r table; do
-      echo "Dropping table: $table"
-      sudo -u www-data wp db query "DROP TABLE IF EXISTS \`$table\`;"
-    done
-    ;;
-esac
-
-echo "Unused wp_ tables dropped."
 
 
 echo "executing search-replace"
