@@ -78,6 +78,8 @@ echo "done"
 
 echo "#### WordPress installation complete."
 
+
+
 echo "##### STEP 2 CLONING PDRT3"
 echo "performing pdrt3 content backup"
 cd /var/www/html/pdrt3
@@ -88,6 +90,23 @@ cd /var/www/html/pdrt3
 echo "exporting and importing db"
 sudo -u www-data wp db export "/var/www/html/$foldername/wordpress.sql" --add-drop-table
 echo "pdrt3 db exported"
+
+#change db tables prefix
+old_prefix="prdt1_"
+new_prefix="${foldername}_"
+echo "Changing table prefix from $old_prefix to $new_prefix in wordpress.sql..."
+sudo -u www-data sed -i "s/\`${old_prefix}/\`${new_prefix}/g" "/var/www/html/$foldername/wordpress.sql"
+echo "Table prefix changed."
+
+# Drop tables with the wp_ prefix
+echo "Dropping unused wp_ tables..."
+tables_to_drop=$(sudo -u www-data wp db tables --all-tables --format=csv | grep '^wp_')
+for table in $tables_to_drop; do
+  echo "Dropping table: $table"
+  sudo -u www-data wp db query "DROP TABLE IF EXISTS \`$table\`;"
+done
+echo "unused wp_ tables dropped."
+
 
 cd "/var/www/html/$foldername"
 wp db import "/var/www/html/$foldername/wordpress.sql"
@@ -116,7 +135,12 @@ echo "Updating settings"
 wp option update home "$url"
 wp option update siteurl "$url"
 
-sudo -u www-data wp config set FS_METHOD 'direct' --type=constant --raw
+# Update wp-config.php with the new table prefix
+echo "Updating table prefix in wp-config.php..."
+sudo -u www-data wp config set table_prefix "$new_prefix" --type=variable
+echo "Table prefix updated."
+
+sudo -u www-data wp config set FS_METHOD 'direct' --type=constant
 sudo -u www-data wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
 
 echo "#### settings done"
