@@ -71,8 +71,10 @@ echo "Core installed"
 EOF
 
 # Set proper permissions
+echo "Set proper permissions"
 sudo -u www-data find "/var/www/html/$foldername" -type d -exec chmod 755 {} \;
 sudo -u www-data find "/var/www/html/$foldername" -type f -exec chmod 644 {} \;
+echo "done"
 
 echo "#### WordPress installation complete."
 
@@ -81,34 +83,3 @@ echo "performing pdrt3 content backup"
 cd /var/www/html/pdrt3
 tar --exclude='cache' -czvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz" wp-content
 echo "done backing up wp-content of pdrt3"
-
-cd /var/www/html/pdrt3
-wp db export "/var/www/html/$foldername/wordpress.sql" --add-drop-table
-echo "pdrt3 db exported"
-
-cd "/var/www/html/$foldername"
-wp db import "/var/www/html/$foldername/wordpress.sql"
-echo "pdrt3 db imported"
-
-echo "executing search-replace"
-wp search-replace 'https://staging.appetiser.com.au/pdrt3' "$url" --skip-columns=guid --all-tables
-echo "done."
-
-echo "uncompressing wp-content"
-cd "/var/www/html/$foldername/"
-tar -xzvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz"
-echo "done."
-
-wp cache flush
-
-echo "#### pdrt3 cloned."
-
-cd "/var/www/html/$foldername/"
-echo "Updating settings"
-wp option update home "$url"
-wp option update siteurl "$url"
-
-wp config set FS_METHOD 'direct' --type=constant --raw
-wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
-
-echo "#### settings done"
