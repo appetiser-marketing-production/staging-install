@@ -92,7 +92,7 @@ sudo -u www-data wp db export "/var/www/html/$foldername/wordpress.sql" --add-dr
 echo "pdrt3 db exported"
 
 #change db tables prefix
-old_prefix="prdt1_"
+old_prefix="pdrt1_"
 new_prefix="${foldername}_"
 echo "Changing table prefix from $old_prefix to $new_prefix in wordpress.sql..."
 sudo -u www-data sed -i "s/\`${old_prefix}/\`${new_prefix}/g" "/var/www/html/$foldername/wordpress.sql"
