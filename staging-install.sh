@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Usage: $0 <foldername> <title> [adminuser] [adminpass] [adminemail]"
+echo "Usage: $0 <foldername>"
 echo "Default admin credentials will be used if none are provided."
 
 echo "##### STEP 1 SETUP WORDPRESS STAGING SITE"
