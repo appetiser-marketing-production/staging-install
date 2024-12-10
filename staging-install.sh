@@ -27,10 +27,15 @@ adminuser=${3:-"appetiser"}
 adminpass=${4:-"zj^!uV8thz&Xi6zV20FI4i8Q"}
 adminemail=${5:-"norbert.feria@appetiser.com.au"}
 
-if [[ -z "$foldername" ]]; then
-  echo "Error: Folder name cannot be blank. Please provide a valid folder name."
-  exit 1
-fi
+case "$foldername" in
+  "")
+    echo "Error: Folder name cannot be blank. Please provide a valid folder name."
+    exit 1
+    ;;
+  *)
+    # Folder name is valid; proceed
+    ;;
+esac
 
 # Automatically derive dbname and URL
 dbname="client_${foldername}"
@@ -38,6 +43,7 @@ url="$base_url/$foldername"
 echo "Done gathering and setting values for settings"
 
 # Create the directory and navigate into it
+echo "Create the directory and navigate into it"
 sudo -u www-data mkdir -p "$foldername" && sudo -u www-data chmod 775 "$foldername"
 echo "Folder created"
 
