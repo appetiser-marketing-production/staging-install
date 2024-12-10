@@ -98,19 +98,32 @@ echo "Changing table prefix from $old_prefix to $new_prefix in wordpress.sql..."
 sudo -u www-data sed -i "s/\`${old_prefix}/\`${new_prefix}/g" "/var/www/html/$foldername/wordpress.sql"
 echo "Table prefix changed."
 
-# Drop tables with the wp_ prefix
-echo "Dropping unused wp_ tables..."
-tables_to_drop=$(sudo -u www-data wp db tables --all-tables --format=csv | grep '^wp_')
-for table in $tables_to_drop; do
-  echo "Dropping table: $table"
-  sudo -u www-data wp db query "DROP TABLE IF EXISTS \`$table\`;"
-done
-echo "unused wp_ tables dropped."
-
-
 cd "/var/www/html/$foldername"
 wp db import "/var/www/html/$foldername/wordpress.sql"
 echo "pdrt3 db imported"
+
+echo "Updating meta_key prefixes from ${old_prefix} to ${new_prefix} on usermeta table"
+sudo -u www-data wp db query "UPDATE ${new_prefix}usermeta SET meta_key = REPLACE(meta_key, '${old_prefix}', '${new_prefix}') WHERE meta_key LIKE '${old_prefix}%';"
+echo "Prefixes updated on usermeta table"
+
+# Drop tables with the wp_ prefix
+echo "Dropping unused wp_ tables..."
+tables_to_drop=$(sudo -u www-data wp db tables --all-tables --format=csv | grep '^wp_')
+
+case "$tables_to_drop" in
+  "") 
+    echo "No tables with wp_ prefix found."
+    ;;
+  *) 
+    echo "$tables_to_drop" | while IFS= read -r table; do
+      echo "Dropping table: $table"
+      sudo -u www-data wp db query "DROP TABLE IF EXISTS \`$table\`;"
+    done
+    ;;
+esac
+
+echo "Unused wp_ tables dropped."
+
 
 echo "executing search-replace"
 wp search-replace 'https://staging.appetiser.com.au/pdrt3' "$url" --skip-columns=guid --all-tables
@@ -120,8 +133,6 @@ echo "uncompressing wp-content"
 cd "/var/www/html/$foldername/"
 sudo -u www-data tar -xzvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz"
 echo "done."
-
-wp cache flush
 
 echo "#### pdrt3 cloned."
 
@@ -144,3 +155,5 @@ sudo -u www-data wp config set FS_METHOD 'direct' --type=constant
 sudo -u www-data wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
 
 echo "#### settings done"
+
+wp cache flush
