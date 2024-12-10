@@ -106,7 +106,7 @@ wp cache flush
 
 echo "#### pdrt3 cloned."
 
-echo "Resetting proper permissions"
+echo "Resetting proper permissions..."
 sudo -u www-data find "/var/www/html/$foldername" -type d -exec chmod 755 {} \;
 sudo -u www-data find "/var/www/html/$foldername" -type f -exec chmod 644 {} \;
 echo "done"
@@ -116,7 +116,7 @@ echo "Updating settings"
 wp option update home "$url"
 wp option update siteurl "$url"
 
-wp config set FS_METHOD 'direct' --type=constant --raw
-wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
+sudo -u www-data wp config set FS_METHOD 'direct' --type=constant --raw
+sudo -u www-data wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
 
 echo "#### settings done"
