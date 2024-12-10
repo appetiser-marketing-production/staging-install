@@ -83,3 +83,8 @@ echo "performing pdrt3 content backup"
 cd /var/www/html/pdrt3
 sudo -u www-data tar --exclude='cache' -czvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz" wp-content
 echo "done backing up wp-content of pdrt3"
+
+cd /var/www/html/pdrt3
+echo "exporting and importing db"
+sudo -u www-data wp db export "/var/www/html/$foldername/wordpress.sql" --add-drop-table
+echo "pdrt3 db exported"
