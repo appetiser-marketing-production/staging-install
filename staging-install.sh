@@ -81,5 +81,5 @@ echo "#### WordPress installation complete."
 echo "##### STEP 2 CLONING PDRT3"
 echo "performing pdrt3 content backup"
 cd /var/www/html/pdrt3
-tar --exclude='cache' -czvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz" wp-content
+sudo -u www-data tar --exclude='cache' -czvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz" wp-content
 echo "done backing up wp-content of pdrt3"
