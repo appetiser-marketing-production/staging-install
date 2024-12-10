@@ -127,6 +127,10 @@ echo "Table prefix updated."
 sudo -u www-data wp config set FS_METHOD 'direct' --type=constant
 sudo -u www-data wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
 
+echo "Updating site title."
+wp option update blogname "$foldername"
+echo "Site title updated."
+
 echo "#### settings done"
 
 wp cache flush
