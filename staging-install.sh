@@ -88,3 +88,11 @@ cd /var/www/html/pdrt3
 echo "exporting and importing db"
 sudo -u www-data wp db export "/var/www/html/$foldername/wordpress.sql" --add-drop-table
 echo "pdrt3 db exported"
+
+cd "/var/www/html/$foldername"
+wp db import "/var/www/html/$foldername/wordpress.sql"
+echo "pdrt3 db imported"
+
+echo "executing search-replace"
+wp search-replace 'https://staging.appetiser.com.au/pdrt3' "$url" --skip-columns=guid --all-tables
+echo "done."
