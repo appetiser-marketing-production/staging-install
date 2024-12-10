@@ -28,8 +28,6 @@ adminuser=${3:-"appetiser"}
 adminpass=${4:-"zj^!uV8thz&Xi6zV20FI4i8Q"}
 adminemail=${5:-"norbert.feria@appetiser.com.au"}
 
-echo "Done gathering and setting values for settings"
-
 case "$foldername" in
   "")
     echo "Error: Folder name cannot be blank. Please provide a valid folder name."
@@ -44,8 +42,12 @@ esac
 dbname="client_${foldername}"
 url="$base_url/$foldername"
 
+echo "Done gathering and setting values for settings"
+
 # Create the directory and navigate into it
-sudo mkdir -p "$foldername"
+mkdir -p "$foldername" && chmod 775 "$foldername"
+echo "folder created"
+
 cd "/var/www/html/$foldername"  || exit
 
 # Download WordPress core
@@ -66,12 +68,12 @@ echo "core installed"
 
 # Set ownership
 echo "Setting ownership to www-data..."
-sudo chown -R www-data:www-data .
+chown -R www-data:www-data "/var/www/html/$foldername"
 
 # Set proper permissions
 echo "Setting proper file and directory permissions..."
-sudo find . -type d -exec chmod 755 {} \;  
-sudo find . -type f -exec chmod 644 {} \;
+find "/var/www/html/$foldername" -type d -exec chmod 755 {} \;
+find "/var/www/html/$foldername" -type f -exec chmod 644 {} \;
 
 echo "WordPress installation complete."
 
