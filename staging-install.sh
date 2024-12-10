@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "Usage: $0 <foldername> <dbname> <url> <title> <adminuser> <adminpass> <adminemail>"
-echo "Or you can enter the details."
+echo "Usage: $0 <foldername> <title> [adminuser] [adminpass] [adminemail]"
+echo "Default admin credentials will be used if none are provided."
 
 # Check if wp-cli is installed
 if ! which wp > /dev/null; then
@@ -18,19 +18,29 @@ dbpass="mypassword"
 
 base_url="https://staging.appetiser.com.au"
 
-# Check if a variable is passed as an argument; if not, prompt for input.
+# Get input or arguments
 foldername=${1:-$(read -p "Enter folder name: " tmp && echo $tmp)}
+title=${2:-$(read -p "Enter site title: " tmp && echo $tmp)}
+
+# Default admin credentials
+adminuser=${3:-"appetiser"}
+adminpass=${4:-"zj^!uV8thz&Xi6zV20FI4i8Q"}
+adminemail=${5:-"norbert.feria@appetiser.com.au"}
+
+# Failsafe for foldername
+if [[ -z "$foldername" ]]; then
+  echo "Error: Folder name cannot be blank. Please provide a valid folder name."
+  exit 1
+fi
+
+# Automatically derive dbname and URL
 dbname="client_${foldername}"
 url="$base_url/$foldername"
-title=${4:-$(read -p "Enter site title: " tmp && echo $tmp)}
-adminuser=${5:-$(read -p "Enter admin username: " tmp && echo $tmp)}
-adminpass=${6:-$(read -p "Enter admin password: " tmp && echo $tmp && echo "")}
-adminemail=${7:-$(read -p "Enter admin email: " tmp && echo $tmp)}
 
 # Create the directory and navigate into it
 sudo mkdir -p "$foldername"
 sudo chmod -R 775 "/var/www/html/$foldername"
-cd "$foldername" || exit
+cd "/var/www/html/$foldername"  || exit
 
 # Download WordPress core
 wp core download
@@ -50,7 +60,10 @@ sudo chown -R www-data:www-data .
 
 # Set proper permissions
 echo "Setting proper file and directory permissions..."
-sudo find . -type d -exec chmod 775 {} \;
+sudo find . -type d -exec chmod 755 {} \;  
 sudo find . -type f -exec chmod 644 {} \;
 
 echo "WordPress installation complete."
+
+# Ensure the final working directory is /var/www/html
+cd /var/www/html
