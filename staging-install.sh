@@ -133,4 +133,12 @@ echo "Site title updated."
 
 echo "#### settings done"
 
+echo "Removing files..."
+# Remove the tarball
+sudo -u www-data rm "/var/www/html/$foldername/pdrt3-wp-content.tar.gz"
+echo "Temporary tarball removed."
+
+sudo -u www-data rm "/var/www/html/$foldername/wordpress.sql"
+echo "Temporary SQL file removed."
+
 wp cache flush
