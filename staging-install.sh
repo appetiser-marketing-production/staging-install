@@ -1,173 +1,83 @@
 #!/bin/bash
 
-echo "Usage: $0 <foldername>"
-echo "Default admin credentials will be used if none are provided."
+echo "🔄 WordPress Staging Installation Script"
+echo "This script automates creating a staging site."
 
-LOGFILE="/var/log/staging_install_$(whoami)_$(date +'%Y%m%d_%H%M%S').log"
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+CONFIG_FILE="${1:-$SCRIPT_DIR/staging-install.conf}"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    echo "🔹 Using configuration file: $CONFIG_FILE"
+    source "$CONFIG_FILE"
+else
+    echo "⚠️ No configuration file found. Using default settings or prompting for input."
+fi
+
+LOGFILE="/var/log/staging-install_$(whoami)_$(date +'%Y%m%d_%H%M%S').log"
 
 log_action() {
-  local result=$?
-  local time_stamp
-  time_stamp=$(date +"%Y-%m-%d %H:%M:%S")
+  local time_stamp=$(date +"%Y-%m-%d %H:%M:%S")
   echo "$time_stamp: $1: $2" | sudo tee -a "$LOGFILE" > /dev/null
-  return $result
 }
 
-log_action "START" "STEP 1 WordPress staging site setup"
+check_blank() {
+  local value="$1"
+  local var_name="$2"
 
-echo "##### STEP 1 SETUP WORDPRESS STAGING SITE"
+  if [[ -z "$value" ]]; then
+    echo "❌ Error: $var_name cannot be blank."
+    log_action "Error" "$var_name cannot be blank."
+    exit 1
+  else
+    echo "✅ $var_name is set to: $value"
+  fi
+}
 
-# Check if wp-cli is installed
 if ! which wp > /dev/null; then
-  echo "wp-cli could not be found. Please install wp-cli before running this script."
-  log_action "ERROR" "wp-cli could not be found."
+  errormsg="❌ WP CLI could not be found. Please install WP-CLI before running this script."
+  echo "$errormsg"
+  echo "ℹ️ For installation instructions, visit: https://wp-cli.org/#installing"
+  log_action "ERROR" "$errormsg"
   exit 1
 fi
 
-# Navigate to the web server's root directory
-cd /var/www/html || { echo "Failed to navigate to /var/www/html. Ensure the directory exists."; exit 1; }
-echo "Working directory changed to /var/www/html"
+# Ensure config values are loaded or prompt if missing
+web_root="${WEB_ROOT:-$(read -p "📂 Enter the web root directory: " tmp && echo "$tmp")}"
+check_blank "$web_root" "Web Root"
 
-# Database credentials
-dbuser="myuser"
-dbpass="mypassword"
-base_url="https://staging.appetiser.com.au"
+folder_name="${FOLDER_NAME:-$(read -p "📂 Enter the source folder name: " tmp && echo "$tmp")}"
+check_blank "$folder_name" "Source Folder Name"
 
-# Get input or arguments
-foldername=${1:-$(read -p "Enter folder/clientname name: " tmp && echo $tmp)}
-title=${2:-$(echo "$foldername" | awk '{ print toupper(substr($0, 1, 1)) tolower(substr($0, 2)) }')}
+backup_file="${BACKUP_FILE:-$(read -p "📂 Enter the backup file path: " tmp && echo "$tmp")}"
+check_blank "$backup_file" "Backup File"
 
-# Default admin credentials
-adminuser=${3:-"appetiser"}
-adminpass=${4:-"zj^!uV8thz&Xi6zV20FI4i8Q"}
-adminemail=${5:-"norbert.feria@appetiser.com.au"}
+base_folder="${BASE_FOLDER:-$(read -p "📂 Enter the base folder path: " tmp && echo "$tmp")}"
+check_blank "$base_folder" "Base Folder"
 
-case "$foldername" in
-  "")
-    echo "Error: Folder name cannot be blank. Please provide a valid folder name."
-    log_action "ERROR" "Blank folder name"
+restore_folder="${RESTORE_FOLDER:-$(read -p "📂 Enter the restore folder name: " tmp && echo "$tmp")}"
+check_blank "$restore_folder" "Restore Folder"
+
+# Combine base folder and restore folder
+full_restore_path="${base_folder%/}/${restore_folder}"
+
+echo "📂 Staging site will be created at: $full_restore_path"
+
+# Step 1: Backup the Source Site
+echo "📦 Creating a backup of the source site ($web_root/$folder_name)..."
+backup-wp "$CONFIG_FILE"
+if [[ $? -ne 0 ]]; then
+    echo "❌ Backup failed. Aborting staging site setup."
     exit 1
-    ;;
-  *)
-    # Folder name is valid; proceed
-    ;;
-esac
+fi
+log_action "SUCCESS" "Source site backup completed."
 
-# Automatically derive dbname and URL
-dbname="client_${foldername}"
-url="$base_url/$foldername"
-log_action "Done" "setting values gathered."
-echo "Done gathering setting values for settings"
+# Step 2: Restore to the New Staging Site
+echo "📤 Restoring backup to new staging site ($full_restore_path)..."
+restore-wp "$CONFIG_FILE"
+if [[ $? -ne 0 ]]; then
+    echo "❌ Restore failed. Aborting staging site setup."
+    exit 1
+fi
+log_action "SUCCESS" "Staging site restore completed."
 
-# Create the directory and navigate into it
-echo "Create the directory and navigate into it"
-sudo -u www-data mkdir -p "$foldername" && sudo -u www-data chmod 775 "$foldername"
-echo "Folder created"
-log_action "Done" "Folder created."
-
-cd "/var/www/html/$foldername" || exit
-
-# Run commands as www-data
-sudo -u www-data bash <<EOF
-# Download WordPress core
-wp core download
-echo "Core downloaded."
-log_action "Done" "Wordpress Core downloaded."
-
-# Create wp-config.php with database details
-wp config create --dbname="$dbname" --dbuser="$dbuser" --dbpass="$dbpass"
-echo "Config created"
-log_action "Done" "Wordpress Config created."
-
-# Create the database
-wp db create
-echo "DB created"
-log_action "Done" "Wordpress database created."
-
-# Install WordPress
-wp core install --url="$url" --title="$title" --admin_user="$adminuser" --admin_password="$adminpass" --admin_email="$adminemail"
-echo "Core installed"
-log_action "Done" "Wordpress core installed."
-EOF
-
-# Set proper permissions
-echo "Set proper permissions"
-sudo -u www-data find "/var/www/html/$foldername" -type d -exec chmod 755 {} \;
-sudo -u www-data find "/var/www/html/$foldername" -type f -exec chmod 644 {} \;
-echo "done"
-log_action "Done" "Wordpress folder and file permissions."
-
-echo "#### WordPress installation complete."
-log_action "Completed" "Wordpress installation completed."
-
-log_action "START" "Step 2 Cloning pdrt3."
-echo "##### STEP 2 CLONING PDRT3"
-echo "performing pdrt3 content backup"
-cd /var/www/html/pdrt3
-sudo -u www-data tar --exclude='cache' -czvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz" wp-content
-echo "done backing up wp-content of pdrt3"
-log_action "Done" "pdrt3 wp-content backup."
-
-cd /var/www/html/pdrt3
-echo "exporting and importing db"
-sudo -u www-data wp db export "/var/www/html/$foldername/wordpress.sql" --add-drop-table
-echo "pdrt3 db exported"
-log_action "Done" "pdrt3 db exported."
-
-new_prefix="pdrt1_"
-
-cd "/var/www/html/$foldername"
-wp db import "/var/www/html/$foldername/wordpress.sql"
-echo "pdrt3 db imported"
-log_action "Done" "pdrt3 db imported."
-
-echo "executing search-replace"
-wp search-replace 'https://staging.appetiser.com.au/pdrt3' "$url" --skip-columns=guid --all-tables
-echo "done."
-log_action "Done" "DB search-replace."
-
-echo "uncompressing wp-content"
-cd "/var/www/html/$foldername/"
-sudo -u www-data tar -xzvf "/var/www/html/$foldername/pdrt3-wp-content.tar.gz"
-echo "done."
-log_action "Done" "PDRT3 wp-content cloned."
-
-echo "#### pdrt3 cloned."
-
-echo "Resetting proper permissions..."
-sudo -u www-data find "/var/www/html/$foldername" -type d -exec chmod 755 {} \;
-sudo -u www-data find "/var/www/html/$foldername" -type f -exec chmod 644 {} \;
-echo "done"
-log_action "Done" "reset folder file permissions."
-
-cd "/var/www/html/$foldername/"
-echo "Updating settings"
-wp option update home "$url"
-wp option update siteurl "$url"
-
-# Update wp-config.php with the new table prefix
-echo "Updating table prefix in wp-config.php..."
-sudo -u www-data wp config set table_prefix "$new_prefix" --type=variable
-echo "Table prefix updated."
-log_action "Done" "table prefix updated"
-
-sudo -u www-data wp config set FS_METHOD 'direct' --type=constant
-sudo -u www-data wp config set ALLOW_UNFILTERED_UPLOADS true --type=constant --raw
-
-echo "Updating site title."
-wp option update blogname "$foldername"
-echo "Site title updated."
-log_action "Done" "Site title update"
-
-echo "#### settings done"
-log_action "Done" "wp settings configured."
-echo "Removing files..."
-# Remove the tarball
-sudo -u www-data rm "/var/www/html/$foldername/pdrt3-wp-content.tar.gz"
-echo "Temporary tarball removed."
-
-sudo -u www-data rm "/var/www/html/$foldername/wordpress.sql"
-echo "Temporary SQL file removed."mg
-log_action "Done" "Temporary Files removed."
-wp cache flush
-log_action "Completed" "Staging site installed."
+echo "✅ Staging site setup is complete!"
